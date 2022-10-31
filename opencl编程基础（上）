@@ -1,0 +1,164 @@
+Opencl工作流程：
+（1）Discover and initialize the platforms
+　　调用两次clGetPlatformIDs函数，第一次获取可用的平台数量，第二次获取一个可用的平台。
+（2）Discover and initialize the devices
+　　调用两次clGetDeviceIDs函数，第一次获取可用的设备数量，第二次获取一个可用的设备。
+（3）Create a context(调用clCreateContext函数）
+　　上下文context可能会管理多个设备device。
+（4）Create a command queue(调用clCreateCommandQueue函数）
+　　一个设备device对应一个command queue。上下文conetxt将命令发送到设备对应的command queue，设备就可以执行命令队列里的命令。
+（5）Create device buffers(调用clCreateBuffer函数）
+　　Buffer中保存的是数据对象，就是设备执行程序需要的数据保存在其中。
+　　Buffer由上下文conetxt创建，这样上下文管理的多个设备就会共享Buffer中的数据。
+（6）Write host data to device buffers(调用clEnqueueWriteBuffer函数）
+（7）Create and compile the program
+　　创建程序对象，程序对象就代表你的程序源文件或者二进制代码数据。
+（8）Create the kernel(调用clCreateKernel函数）
+　　根据你的程序对象，生成kernel对象，表示设备程序的入口。
+（9）Set the kernel arguments(调用clSetKernelArg函数）
+（10）Configure the work-item structure(设置worksize）
+　　配置work-item的组织形式（维数，group组成等）
+（11）Enqueue the kernel for execution(调用clEnqueueNDRangeKernel函数）
+　　将kernel对象，以及 work-item参数放入命令队列中进行执行。
+（12）Read the output buffer back to the host(调用clEnqueueReadBuffer函数）
+（13）Release OpenCL resources（至此结束整个运行过程）
+　　
+OpenCL的主要执行过程：
+1）对平台初始化：
+cl_int err=0;
+cl_uint num_platform=0;
+cl_platfrom_id*plaform=NuLL
+err=clGetPlatformIDs(0,NULL,&num_platform);
+if(CL_SUCCESS!=err){
+exit(-1);
+}
+platform=(cl_plaform_id*)malloc(sizeof(cl_platform_id)*num_platform);
+err=clGetPlatformIds(num_platform,platform,NULL)
+
+openCL设备分类：cpu，gpu
+
+2）获取设备
+cl_int err=0;
+cl_uint num_device=0;
+cl_device_id*device=NuLL
+err=clGetDeviceIDs(platform,CL_DEVICE_TYPE_GPU,0,NULL,&num_devices);
+if(CL_SUCCESS!=err){
+exit(-1);
+}
+devices=(cl_device_id*)malloc(sizeof(cl_device_id)*num_devices);
+err=clGetDeviceIds(platform,CL_DEVICE_TYPE,num_devices,devices,NULL);
+
+上下文的重要性：
+1）关联设备
+2）关联内存对象
+3）关联命令队列
+4）管理程序对象
+5）管理内核对象
+6）驱动应用程序和设备通信
+
+上下文函数代码；
+1)clCreateContextContent(显示指定设备，默认使用所有的设备)
+2)clVreateContextFromType（根据类型选择设备，选择第一个找到的设备）
+
+命令队列：
+沟通：
+1.命令是主机发送给设备的消息
+2.通知设备执行操作
+
+内情：
+1.主机与设备的数据搬运
+2.设备内/设备间的数据搬运和内核执行
+
+流程：
+1.命令提交到命令队列
+2.命令队列把需要执行的命令发送给设备
+3.设备执行接收到的命令
+4.命令只能是从主机发送给设备
+
+1）openCL是跨平台的工业标准
+2）OpenCL只有在选择设备对象之后才能确定运行环境
+3）运行之前需要对程序对象进行构建
+
+程序对象构建：
+program：程序对象
+options：调用编译器的参数，针对于intel FPGA的openCL平台，该参数请设置为NULL
+pfn_notify:毁掉函数。针对intel FPGA的openCL平台，通常无需设置
+user_data:回调函数的传入参数
+
+本质是一段代码（函数）
+需要编译为可执行文件（aocx）
+在openCL设备上执行
+
+创建内核对象
+kernel_name：内核名称，实际就是一个函数名称
+errcode_ret:表示错误状态吗
+
+内核参数与内存对象
+内核的参数如何设置
+主机端如何向内核传递参数数据
+主机端如何获取内核的执行结果
+
+内存对象又称缓冲区：
+1）缓冲区
+2）主机传入设备
+3）设备传出
+4）内存资源
+5）对同一上下文的设备全局可见
+6）至关重要
+
+设置内核参数
+1.arg_index:内核参数的索引，从0开始
+2.arg_size:参数所占据的内存大小
+3.arg_value:参数值的地址
+
+执行内核：
+1）work_dim:执行内核的全局工作项的维度，最小值为1，最大值为CL_DEVICE_MAX_ITEM_DIMENSION。intel FPGA的最大值为1
+2）global_work_offset:全局工作id的偏移量。绝大多数情况下，设置为null
+3）global_work_size:指定全局工作项大小
+4）local_work_size:指定一个工作组当中的工作项大小
+
+从cpu获取结果：
+1）blocking_read:阻塞式的读取方式
+2）offset：读取的偏移量
+3）cb：OpenCL执行的结果所占据的内存大小
+4）ptr：主机端接收结果的指针
+
+Linux内核的任务：
+1.从技术层面讲，内核是硬件与软件之间的一个中间层。作用是将应用层序的请求传递给硬件，并充当底层驱动程序，对系统中的各种设备和组件进行寻址。
+2.从应用程序的层面讲，应用程序与硬件没有联系，只与内核有联系，内核是应用程序知道的层次中的最底层。在实际工作中内核抽象了相关细节。
+3.内核是一个资源管理程序。负责将可用的共享资源(CPU时间、磁盘空间、网络连接等)分配得到各个系统进程。
+4.内核就像一个库，提供了一组面向系统的命令。系统调用对于应用程序来说，就像调用普通函数一样。
+
+err=clEnqueueReadBuffer(queue,c_buffer,CL_True,0,sizeof(int)*10,adder_c_output,0,null,null);
+size_t index=0;
+for(;index<10;index++){
+printf("%f\n",adder_c_output[index]);
+}
+
+openCL对象回收
+1）内核对象是动态加载构建的
+2）内存对象是实时申请的
+3）命令队列也是动态申请的
+4）上下文按需分配
+资源有限，需要及时回收
+
+资源回收有先后顺序
+1.内核对象依赖于程序对象
+2.程序对象依赖于设备和上下文
+3.命令队列依赖于设备和上下文
+4.内存对象依赖于上下文
+5.上下文依赖于设备和平台
+
+统一的方式：clRease<ObjectType>
+1.clReleaseKernel(kernel)
+2.clReleaseCommandQueue(queue)
+3.clReleaseMemObject(a_buffer)
+4.clReleaseMemObject(b_buffer)
+5.clReleaseMemObject(c_buffer)
+6.clReleaseContext(ctext)
+
+
+
+
+
+
