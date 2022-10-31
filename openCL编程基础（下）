@@ -1,0 +1,22 @@
+01基本简介和基本语法
+_kernel void adder(_global float*a,_global float*b,_global float*result){
+int tid=get_global_id(0);
+result[tid]=a[tid]+b[tid]
+}
+
+关键字修饰符：
+1.地址空间限定符:_global,global,_local,local._constant,constant,_private,private
+2.函数限定符:_kernel,kernel
+3.访问限定符:_read_only,read_only,_write_only,write_only,_read_write,read_write
+
+02数据类型
+矢量数据：使用矢量数据是提升性能的重要方法，现代处理器一条指令可以处理多条数据
+主机端：
+cl_int4 vector4={{1,2,3,4}}
+cl_float8 f8={{1,2,3,4,5,6,7,8}}
+设备端:
+float v8=(float8)(1.0,2.0,3.0,4.0,5.0)
+
+矢量数据实际上是由多个标量数据组成
+可以采用<vector>.xyzw进行访问，分别对应第0-3个数据，最多4个
+
